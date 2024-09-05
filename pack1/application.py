@@ -26,21 +26,22 @@ class Application:
         else:
             return True
 
-    def _check_group(self):
+    def update_group(self):
 
         now = datetime.now()
 
         changed = False
-        for uuid, timestamp in self._ids.copy().items():
-            if not self._is_alive(now, datetime.fromisoformat(timestamp)):
+        for uuid, dictionary in self._ids.copy().items():
+            if not self._is_alive(now, datetime.fromisoformat(dictionary['time'])):
                 changed = True
 
-                address = self._ids[uuid]['address']
+                address = dictionary['address']
                 self._ids.pop(uuid)
-                print(f'{address} left group, last message time: {timestamp}')
+                print(f'{address} left group, last message time: {dictionary["time"]}')
 
         if changed:
-            print(f'alive ips: {self._get_alive_ips()}')
+            alive = self._get_alive_ips()
+            print(f'alive ips: {alive}' if len(alive) > 0 else 'there is no alive copy now')
 
     def _get_alive_ips(self) -> set:
         ips = set()
@@ -80,5 +81,6 @@ class Application:
 
         while True:
             self.check_messages()
+            self.update_group()
             self.application_work()
 
