@@ -6,9 +6,12 @@ port = 10000
 
 
 def main():
-    app = Application(multicast_group_IPv4, port)
+    app = Application(multicast_group_IPv6, port)
     app.start()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        exit(0)
