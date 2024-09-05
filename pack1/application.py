@@ -48,33 +48,37 @@ class Application:
             ips.add(v['address'])
         return ips
 
+    def check_messages(self):
+        self._sender.send(Message(self.uuid, datetime.now().isoformat()))
+
+        data, sender = self._receiver.receive()
+
+        while data is not None:
+
+            if data.uuid == self.uuid:
+                data, sender = self._receiver.receive()
+                continue
+
+            if data is not None:
+                address = sender[0]
+
+                if data.uuid not in self._ids:
+                    self._ids[data.uuid] = {"time": data.timestamp, "address": address}
+                    print(f'{address} joined group at {data.timestamp}')
+                    print(f'alive ips: {self._get_alive_ips()}')
+
+                else:
+                    self._ids[data.uuid]["time"] = data.timestamp
+
+            data, sender = self._receiver.receive()
+
+
     def application_work(self):
         sleep(0.5)
 
     def start(self):
 
         while True:
-            self._sender.send(Message(self.uuid, datetime.now().isoformat()))
-
-            data, sender = self._receiver.receive()
-
-            while data is not None:
-
-                if data.uuid == self.uuid:
-                    data, sender = self._receiver.receive()
-                    continue
-
-                if data is not None:
-                    address = sender[0]
-
-                    if data.uuid not in self._ids:
-                        self._ids[data.uuid] = {"time": data.timestamp, "address": address}
-                        print(f'{address} joined group at {data.timestamp}')
-                        print(f'alive ips: {self._get_alive_ips()}')
-
-                    else:
-                        self._ids[data.uuid]["time"] = data.timestamp
-
-                data, sender = self._receiver.receive()
-
+            self.check_messages()
             self.application_work()
+
