@@ -1,3 +1,4 @@
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta
@@ -50,37 +51,43 @@ class Application:
         return ips
 
     def check_messages(self):
-        self._sender.send(Message(self.uuid, datetime.now().isoformat()))
-
-        data, sender = self._receiver.receive()
-
-        while data is not None:
-
-            if data.uuid == self.uuid:
-                data, sender = self._receiver.receive()
-                continue
-
-            if data is not None:
-                address = sender[0]
-
-                if data.uuid not in self._ids:
-                    self._ids[data.uuid] = {"time": data.timestamp, "address": address}
-                    print(f'{address} joined group at {data.timestamp}')
-                    print(f'alive ips: {self._get_alive_ips()}')
-
-                else:
-                    self._ids[data.uuid]["time"] = data.timestamp
+        while True:
+            self._sender.send(Message(self.uuid, datetime.now().isoformat()))
 
             data, sender = self._receiver.receive()
 
+            while data is not None:
+
+                if data.uuid == self.uuid:
+                    data, sender = self._receiver.receive()
+                    continue
+
+                if data is not None:
+                    address = sender[0]
+
+                    if data.uuid not in self._ids:
+                        self._ids[data.uuid] = {"time": data.timestamp, "address": address}
+                        print(f'{address} joined group at {data.timestamp}')
+                        print(f'alive ips: {self._get_alive_ips()}')
+
+                    else:
+                        self._ids[data.uuid]["time"] = data.timestamp
+
+                data, sender = self._receiver.receive()
+
+            self.update_group()
 
     def application_work(self):
-        sleep(0.5)
+        while True:
+            sleep(0.5)
 
     def start(self):
+        t1 = threading.Thread(target=self.check_messages)
+        t2 = threading.Thread(target=self.application_work)
 
-        while True:
-            self.check_messages()
-            self.update_group()
-            self.application_work()
+        t1.start()
+        t2.start()
+
+        t1.join()
+        t2.join()
 

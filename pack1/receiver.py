@@ -1,6 +1,5 @@
 import socket
 import struct
-from time import sleep
 from types import SimpleNamespace
 
 import message
