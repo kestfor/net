@@ -1,13 +1,10 @@
 import json
-import uuid
-import datetime
 
 
 class Message:
 
-    def __init__(self, uuid: int, timestamp: str):
-        self.uuid = uuid
-        self.timestamp = timestamp
+    def __init__(self, uuid: int):
+        self.Uuid = uuid
 
 
 class MessageEncoder(json.JSONEncoder):

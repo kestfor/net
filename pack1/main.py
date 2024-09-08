@@ -1,6 +1,10 @@
-from application import Application
+import datetime
+from linecache import cache
 
-multicast_group_IPv4 = '224.3.29.71'
+from application import Application
+import requests
+
+multicast_group_IPv4 = '224.0.0.0'
 multicast_group_IPv6 = 'ff15:7079:7468:6f6e:6465:6d6f:6d63:6173'
 port = 10000
 
@@ -10,8 +14,7 @@ def main():
     try:
         app.start()
     except KeyboardInterrupt:
-        exit(0)
-
+        app.close()
 
 if __name__ == '__main__':
     main()

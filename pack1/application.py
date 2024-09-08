@@ -1,12 +1,12 @@
 import threading
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import sleep
 
-from pack1.message import Message
-from pack1.receiver import Receiver
-from pack1.sender import Sender
+from message import Message
+from receiver import Receiver
+from sender import Sender
 
 
 class Application:
@@ -16,7 +16,7 @@ class Application:
     def __init__(self, address: str, port: int):
         self.address = address
         self.port = port
-        self.uuid = uuid.uuid4().int
+        self.Uuid = uuid.uuid4().int
 
         self._ids = {}
         self._receiver = Receiver(self.address, port)
@@ -33,12 +33,12 @@ class Application:
         now = datetime.now()
 
         changed = False
-        for uuid, dictionary in self._ids.copy().items():
+        for Uuid, dictionary in self._ids.copy().items():
             if not self._is_alive(now, datetime.fromisoformat(dictionary['time'])):
                 changed = True
 
                 address = dictionary['address']
-                self._ids.pop(uuid)
+                self._ids.pop(Uuid)
                 print(f'{address} left group, last message time: {dictionary["time"]}')
 
         if changed:
@@ -53,31 +53,37 @@ class Application:
 
     def check_messages(self):
         while True:
-            self._sender.send(Message(self.uuid, datetime.now().isoformat()))
+            self._sender.send(Message(self.Uuid))
 
             data, sender = self._receiver.receive()
 
             while data is not None:
 
-                if data.uuid == self.uuid:
+                if data.Uuid == self.Uuid:
                     data, sender = self._receiver.receive()
                     continue
 
                 if data is not None:
-                    address = sender[0]
 
-                    if data.uuid not in self._ids:
-                        self._ids[data.uuid] = {"time": data.timestamp, "address": address}
-                        print(f'{address} joined group at {data.timestamp}')
+                    address = sender[0]
+                    now = datetime.now().isoformat()
+
+                    if data.Uuid not in self._ids:
+                        self._ids[data.Uuid] = {"time": now, "address": address}
+                        print(f'{address} joined group at {now}')
                         print(f'alive ips: {self._get_alive_ips()}')
 
                     else:
-                        self._ids[data.uuid]["time"] = data.timestamp
+                        self._ids[data.Uuid]["time"] = now
 
                 data, sender = self._receiver.receive()
 
             self.update_group()
             time.sleep(self._time_out_to_send)
+
+    def close(self):
+        self._receiver.close()
+        self._sender.close()
 
     def application_work(self):
         while True:
@@ -85,11 +91,9 @@ class Application:
 
     def start(self):
         t1 = threading.Thread(target=self.check_messages)
-        t2 = threading.Thread(target=self.application_work)
 
+        t1.daemon = True
         t1.start()
-        t2.start()
 
-        t1.join()
-        t2.join()
+        self.application_work()
 

@@ -1,7 +1,6 @@
 import socket
 import struct
 from types import SimpleNamespace
-from urllib.parse import to_bytes
 
 import message
 from typing import Any
@@ -9,7 +8,6 @@ import json
 
 
 class Receiver:
-
     _BUFF_SIZE = 4096
     _TIME_OUT = 0.1
 
@@ -21,7 +19,7 @@ class Receiver:
         except socket.gaierror:
             raise Exception("invalid address")
 
-        self._socket = socket.socket(address_info[0], socket.SOCK_DGRAM)
+        self._socket = socket.socket(address_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._socket.bind(('', port))
 
@@ -46,8 +44,4 @@ class Receiver:
             return None, None
 
     def close(self):
-        interface = 0
-        opt_value = self._group + interface.to_bytes(4, "big")
-        self._socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, opt_value)
         self._socket.close()
-
