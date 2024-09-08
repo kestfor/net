@@ -1,6 +1,7 @@
 import socket
 import struct
 from types import SimpleNamespace
+from urllib.parse import to_bytes
 
 import message
 from typing import Any
@@ -22,17 +23,18 @@ class Receiver:
 
         self._socket = socket.socket(address_info[0], socket.SOCK_DGRAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.bind(("", port))
+        self._socket.bind(('', port))
 
         self._socket.settimeout(self._TIME_OUT)
 
-        group = socket.inet_pton(address_info[0], address_info[4][0])
+        self._group = socket.inet_pton(address_info[0], address_info[4][0])
 
         if address_info[0] == socket.AF_INET:
-            opt_value = group + struct.pack('I', socket.INADDR_ANY)
+            opt_value = self._group + socket.INADDR_ANY.to_bytes(4, "big")
             self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, opt_value)
         else:
-            opt_value = group + struct.pack('I', 0)
+            interface = 0
+            opt_value = self._group + interface.to_bytes(4, "big")
             self._socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, opt_value)
 
     def receive(self) -> (message.Message | None, Any):
@@ -44,5 +46,8 @@ class Receiver:
             return None, None
 
     def close(self):
+        interface = 0
+        opt_value = self._group + interface.to_bytes(4, "big")
+        self._socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, opt_value)
         self._socket.close()
 

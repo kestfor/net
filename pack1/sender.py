@@ -18,7 +18,8 @@ class Sender:
 
         self._socket = socket.socket(address_info[0], socket.SOCK_DGRAM)
 
-        ttl = struct.pack('b', 1)
+        ttl = 1
+        ttl = ttl.to_bytes(1, "big")
 
         if address_info[0] == socket.AF_INET:
             self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)

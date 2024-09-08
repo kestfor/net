@@ -11,6 +11,7 @@ from pack1.sender import Sender
 
 class Application:
     _time_out_to_die = 3
+    _time_out_to_send = 1
 
     def __init__(self, address: str, port: int):
         self.address = address
@@ -76,6 +77,7 @@ class Application:
                 data, sender = self._receiver.receive()
 
             self.update_group()
+            time.sleep(self._time_out_to_send)
 
     def application_work(self):
         while True:
