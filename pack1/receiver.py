@@ -1,10 +1,9 @@
+import json
 import socket
-import struct
 from types import SimpleNamespace
+from typing import Any
 
 import message
-from typing import Any
-import json
 
 
 class Receiver:

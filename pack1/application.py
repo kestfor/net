@@ -96,4 +96,3 @@ class Application:
         t1.start()
 
         self.application_work()
-

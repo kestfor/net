@@ -1,6 +1,5 @@
 import json
 import socket
-import struct
 
 from message import Message, MessageEncoder
 
