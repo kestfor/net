@@ -12,7 +12,7 @@ from pack2.socket_reader import SocketReader
 
 class ServerApp:
     _dir = 'uploads'
-    _buff_size = 8192
+    _buff_size = 4096 * 4
     _timeout_to_read = 0.5
     _max_attempts = 5
 
@@ -94,8 +94,9 @@ class ServerApp:
                     curr_time = time.time()
 
                     if curr_time - last_time >= 3:
-                        sys.stdout.write(f"клиент {addr}, мгновенная скорость: {written - last_time_written / 3} "
-                              f"байт/c, средняя скорость: {written / (curr_time - last_time)} байт/c\n")
+                        sys.stdout.write(
+                            f"клиент {addr}, мгновенная скорость: {(written - last_time_written) / 3 // 1024} "
+                            f"кбайт/c, средняя скорость: {written / (curr_time - last_time) // 1024} кбайт/c\n")
                         last_time = curr_time
                         last_time_written = written
 
@@ -110,8 +111,9 @@ class ServerApp:
         else:
             sock.send(self._SUCCESS)
             curr_time = time.time()
-            sys.stdout.write(f"клиент {addr}, мгновенная скорость: {written - last_time_written / 3} "
-                  f"байт/c, средняя скорость: {written / (curr_time - start_time)} байт/c\n")
+            sys.stdout.write(
+                f"клиент {addr}, мгновенная скорость: {(written - last_time_written) / (curr_time - last_time) // 1024} "
+                f"кбайт/c, средняя скорость: {written / (curr_time - start_time) // 1024} кбайт/c\n")
         sock.close()
 
     def run(self):

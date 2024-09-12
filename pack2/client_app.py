@@ -1,5 +1,4 @@
 import socket
-from threading import Thread
 
 from pack2.address import Address
 from pack2.file import FileToSend
@@ -7,7 +6,7 @@ from pack2.sender import Sender
 
 
 class ClientApp:
-    _buff_size = 4096
+    _buff_size = 4096 * 8
     _SUCCESS = 0
     _FAILURE = 1
 
@@ -42,7 +41,12 @@ class ClientApp:
                 buffer += raw_file.read(self._buff_size - len(buffer))
                 if len(buffer) == 0:
                     break
-                self._sender.send(buffer)
+                try:
+                    self._sender.send(buffer)
+                except Exception as e:
+                    print(e)
+                    print('передача файла остановлена')
+                    return
                 buffer = b''
 
         if int.from_bytes(self._sender.response(), "big") == self._SUCCESS:
@@ -53,5 +57,5 @@ class ClientApp:
 
 
 if __name__ == '__main__':
-    app = ClientApp("test", "192.168.0.13", 1999)
+    app = ClientApp("test", "192.168.0.17", 1999)
     app.send_file("test")
