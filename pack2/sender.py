@@ -10,6 +10,7 @@ class Sender:
         self._port = address.port
         self._connected = False
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+        self._socket.settimeout(5)
 
     def connect(self):
         if not self._connected:
@@ -29,5 +30,8 @@ class Sender:
             self.connect()
         self._socket.send(data)
 
-    def response(self) -> bytes:
-        return self._socket.recv(1)
+    def response(self) -> bytes | None:
+        try:
+            return self._socket.recv(1)
+        except socket.timeout:
+            return None

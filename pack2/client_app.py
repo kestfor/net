@@ -1,3 +1,4 @@
+import pathlib
 import socket
 
 from pack2.address import Address
@@ -49,7 +50,13 @@ class ClientApp:
                     return
                 buffer = b''
 
-        if int.from_bytes(self._sender.response(), "big") == self._SUCCESS:
+        response = self._sender.response()
+        if response is None:
+            print("не удалось проверить целостность файла, сервер не отвечает")
+            self._sender.close()
+            return
+
+        if int.from_bytes(response, "big") == self._SUCCESS:
             print("файл успешно передан")
         else:
             print('файл был поврежден при передаче')
@@ -57,5 +64,7 @@ class ClientApp:
 
 
 if __name__ == '__main__':
-    app = ClientApp("тест", "192.168.0.187", 1999)
-    app.send_file("тест")
+    full_path = r"C:\Users\anzhi\netPacks\packs\pack2\golangVers\тест"
+    path = pathlib.Path(full_path)
+    app = ClientApp(full_path, "192.168.0.17", 1999)
+    app.send_file(path.name)

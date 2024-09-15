@@ -26,9 +26,9 @@ class FileToSend(File):
 
     def _pack_info(self) -> bytes:
         size_encoded = self._size.to_bytes(self._size_encoded_len, self._byteorder)
-        filename_len = len(self._filename)
-        filename_len_encoded = filename_len.to_bytes(self._filename_len_encoded_len, self._byteorder)
         filename_encoded = bytes(self._filename, encoding=self._encoding)
+        filename_len = len(filename_encoded)
+        filename_len_encoded = filename_len.to_bytes(self._filename_len_encoded_len, self._byteorder)
         return size_encoded + filename_len_encoded + filename_encoded
 
     def raw_header(self) -> bytes:
@@ -58,6 +58,7 @@ class FileToReceive(File):
             self._filename = raw_header[
                              self._filename_len_encoded_len + self._size_encoded_len:self._raw_file_start_ind].decode(
                 self._encoding)
+
             self._remain = raw_header[self._raw_file_start_ind:]
         except Exception as e:
             raise RuntimeError("can't parse header")
