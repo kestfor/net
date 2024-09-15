@@ -11,8 +11,8 @@ import os
 # filedata other bytes
 
 class File:
-    _size_encoded_len = 43
-    _filename_len_encoded_len = 12
+    _size_encoded_len = 8
+    _filename_len_encoded_len = 2
     _byteorder = "big"
     _encoding = "utf-8"
 

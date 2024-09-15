@@ -57,5 +57,5 @@ class ClientApp:
 
 
 if __name__ == '__main__':
-    app = ClientApp("test", "192.168.0.17", 1999)
-    app.send_file("test")
+    app = ClientApp("тест", "192.168.0.187", 1999)
+    app.send_file("тест")
