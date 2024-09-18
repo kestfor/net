@@ -3,8 +3,8 @@ import os
 
 
 # header
-# first 43 bytes - size of file in bytes
-# second 12 bytes - len of file_name in bytes (n)
+# first 8 bytes - size of file in bytes
+# second 2 bytes - len of file_name in bytes (n)
 # filename - n bytes
 
 # data

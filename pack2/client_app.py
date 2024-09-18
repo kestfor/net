@@ -1,5 +1,7 @@
 import pathlib
 import socket
+import netifaces
+from netifaces import interfaces
 
 from pack2.address import Address
 from pack2.file import FileToSend
@@ -64,7 +66,7 @@ class ClientApp:
 
 
 if __name__ == '__main__':
-    full_path = r"C:\Users\anzhi\netPacks\packs\pack2\golangVers\тест"
+    full_path = r"C:\Users\anzhi\netPacks\packs\pack2\test.exe"
     path = pathlib.Path(full_path)
-    app = ClientApp(full_path, "192.168.0.17", 1999)
+    app = ClientApp(full_path, "10.9.40.124", 1999)
     app.send_file(path.name)
