@@ -27,7 +27,7 @@ async def weather_func(message: Message, session: aiohttp.ClientSession):
     latitude, longitude = message.location.latitude, message.location.longitude
     try:
         weather_res: Weather = await weather.get_weather(latitude, longitude, session)
-        await message.answer(f'погода: {weather_res}')
+        await message.answer(f'погода:\n{weather_res}')
     except Exception as e:
         print(e)
         await message.answer("api погоды не отвечает")

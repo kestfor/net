@@ -1,7 +1,6 @@
 import asyncio
 
 import aiohttp
-
 from pack3.config_reader import config
 
 
@@ -50,7 +49,7 @@ class MapTripAPI:
         async with session.get(url, params=params) as resp:
             data = await resp.json()
             if len(data) > 0 and resp.status == 200:
-                return NearbyPlace(data['name'] if data["name"] else "без названия", Address(**data["address"]), data['kinds'])
+                return NearbyPlace(data['name'] if data["name"] else "без названия", Address(**data["address"]), data['kinds'].replace(',', ', ').replace('_', ' '))
             else:
                 return None
 

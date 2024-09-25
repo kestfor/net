@@ -35,8 +35,7 @@ class WeatherAPI:
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={self._api_key}"
         res = await session.get(url, timeout=3)
         js = await res.json()
-        print(js)
-        return Weather(js['weather']['main'], js['main']['temp'] - 273.15, js['main']['feels_like'] - 273.15)
+        return Weather(js['weather'][0]['description'], int(js['main']['temp'] - 273.15), int(js['main']['feels_like'] - 273.15))
 
 
 weather = WeatherAPI(config.weather_token.get_secret_value())
