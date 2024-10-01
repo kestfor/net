@@ -19,11 +19,6 @@ class Sender:
         self._socket = socket.socket(address_info[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._group = socket.inet_pton(address_info[0], address_info[4][0])
 
-        # mreq = struct.pack(
-        #     "4s4s", socket.inet_aton(self._address),
-        #     socket.inet_aton(self.INADDR_ANY),)
-        # self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-
         ttl = 1
         ttl = ttl.to_bytes(1, "big")
 
