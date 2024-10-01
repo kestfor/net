@@ -29,8 +29,10 @@ class DeputyNode(n.NormalNode):
         snakes: dict[int: Snake] = {}
         apples: list[Apple] = []
         score = {}
+        names = {}
         players = self._game_state.players.players
         for player in players:
+            names[player.id] = player.name
             score[player.name] = player.score
         field = Field(self._non_parsed_config.width, self._non_parsed_config.height, self._non_parsed_config.cell_size)
         for snake in snakes_pb2:
@@ -44,7 +46,7 @@ class DeputyNode(n.NormalNode):
             apples.append(Apple((apple.x, apple.y)))
             field.set_cell(apple.y, apple.x)
 
-        return GameController(field, snakes, apples, score)
+        return GameController(field, snakes, apples, score, names)
 
     def check_master_status(self) -> None | m.MasterNode:
         now = time.time()

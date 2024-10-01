@@ -7,12 +7,12 @@ from pack4.game_models.snake import Snake
 
 class GameController:
 
-    def __init__(self, field: Field, snakes: dict[int, Snake], apples: list[Apple], scores=None):
+    def __init__(self, field: Field, snakes: dict[int, Snake], apples: list[Apple], scores=None, names=None):
         self._field = field
         self._snakes: dict[int: Snake] = snakes  # key - player_id, value - snake_object
         self._old_tails: dict[int, tuple[int, int]] = {}
         self._apples = apples
-        self.names: dict[int: str] = {}
+        self.names: dict[int: str] = {} if names is None else names
         self._scores: dict[str: int] = {} if scores is None else scores
 
     def add_points(self, points: int, player_id: int):
