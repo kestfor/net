@@ -20,6 +20,8 @@ class ViewerNode(Base):
         self._master_addr = master_addr
         self._pb2_config = pb2_config
         self._deputy_addr: Address | None = None
+        self._STATE_DELAY_MS = pb2_config.state_delay_ms
+        self._TIME_TO_DIE = self._STATE_DELAY_MS * 0.8
         self._score = {}
 
     def _update_deputy(self):

@@ -43,6 +43,8 @@ class MasterNode(Base):
         self.STATE_ORDER = state_order_start
         self._last_state_time = 0
         self._last_announce_time = 0
+        self._STATE_DELAY_MS = config.state_delay_ms
+        self._TIME_TO_DIE = self._STATE_DELAY_MS * 0.8
 
     @property
     def player_id(self):
