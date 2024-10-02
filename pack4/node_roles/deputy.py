@@ -9,16 +9,19 @@ from pack4.controller.game_controller import GameController
 from pack4.game_models.apple import Apple
 from pack4.game_models.game_field import Field
 from pack4.game_models.snake import Snake
+from utils.msg_to_resend import MsgToResend
 
 
 class DeputyNode(n.NormalNode):
     ROLE = pb2.NodeRole.DEPUTY
 
     def _send_promote_yourself_news(self, player):
-        msg = pb2.GameMessage(msg_seq=next(self.msg_seq_gen), sender_id=self._player_id, receiver_id=player.id)
+        msg_seq = next(self.msg_seq_gen)
+        msg = pb2.GameMessage(msg_seq=msg_seq, sender_id=self._player_id, receiver_id=player.id)
         role_change = pb2.GameMessage.RoleChangeMsg(sender_role=pb2.NodeRole.MASTER, receiver_role=player.role)
         msg.role_change.CopyFrom(role_change)
-        self._main_socket.send(msg.SerializeToString(), Address(player.ip_address, player.port))
+        self._acks[msg_seq] = MsgToResend(msg.SerializeToString(), Address(player.ip_address, player.port))
+        self._main_socket.send(self._acks[msg_seq].msg, self._acks[msg_seq].addr)
 
     def _create_game_controller(self) -> GameController:
         game_state = self._game_state
@@ -55,7 +58,11 @@ class DeputyNode(n.NormalNode):
 
     def _create_master(self) -> m.MasterNode:
         new_players = []
-        players = self._game_state.players.players
+        try:
+            players = self._game_state.players.players
+        except AttributeError:
+            raise ConnectionError("нет информации для восстановления состояния мастера")
+
         for player in players:
             if player.role == pb2.NodeRole.MASTER:
                 continue

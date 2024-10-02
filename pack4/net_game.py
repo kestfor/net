@@ -340,11 +340,11 @@ class NetGame:
                     pass
 
 
-multicast_addr = "239.192.0.4"
+multicast_addr = "224.0.0.1"
 port = 9192
 addr = Address(multicast_addr, port)
 
 if __name__ == '__main__':
-    config = GameConfig(50, 50, 1, 500, "game", "Я", 10)
+    config = GameConfig(50, 50, 1, 50, "gamt", "1", 10)
     game = NetGame(addr, config)
     game.run()

@@ -6,6 +6,7 @@ import pack4.node_roles.viewer as v
 import pack4.snakes_pb2 as pb2
 from pack4.utils.Address import Address
 from pack4.game_models.snake import Snake
+from utils.msg_to_resend import MsgToResend
 
 
 class NormalNode(v.ViewerNode):
@@ -13,7 +14,6 @@ class NormalNode(v.ViewerNode):
 
     def __init__(self, addr, config, player_id, master_addr: Address, main_socket, pb2_config):
         super().__init__(addr, config, player_id, master_addr, main_socket, pb2_config)
-        self._acks = set()
 
     # def recv_ack_wrapper(self) -> tuple[bytes, Address]:
     #     res = None
@@ -43,8 +43,8 @@ class NormalNode(v.ViewerNode):
         steer_msg = pb2.GameMessage.SteerMsg(direction=direction)
         msg.steer.CopyFrom(steer_msg)
 
-        self._main_socket.send(msg.SerializeToString(), self._master_addr)
-        self._acks.add(msg_seq)
+        self._acks[msg_seq] = MsgToResend(msg.SerializeToString(), self._master_addr)
+        self._main_socket.send(self._acks[msg_seq].msg, self._acks[msg_seq].addr)
         self._last_send_time = time.time()
         return msg_seq
 
@@ -54,7 +54,6 @@ class NormalNode(v.ViewerNode):
             case "role_change":
                 sender_role = msg.role_change.sender_role
                 receiver_role = msg.role_change.receiver_role
-
 
                 if receiver_role == pb2.NodeRole.DEPUTY:
 
@@ -66,8 +65,7 @@ class NormalNode(v.ViewerNode):
                                         self._main_socket, self._pb2_config)
             case 'ack':
                 msg_seq = msg.msg_seq
-                if msg_seq in self._acks:
-                    self._acks.pop()
+                self._grant_ack(msg_seq)
             case 'error':
                 raise ConnectionError(msg.error.error_message)
             case _:

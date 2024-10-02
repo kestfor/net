@@ -2,12 +2,13 @@ import time
 from typing import Any
 
 import pack4.snakes_pb2 as pb2
-from pack4.utils.Address import Address
 from pack4.controller.game_controller import GameController
 from pack4.game_models.apple import Apple
 from pack4.game_models.snake import Snake
-from pack4.node_roles.base import Base
 from pack4.net.sender_socket import Socket
+from pack4.node_roles.base import Base
+from pack4.utils.Address import Address
+from utils.msg_to_resend import MsgToResend
 
 
 class MasterNode(Base):
@@ -54,11 +55,12 @@ class MasterNode(Base):
         self._last_player_message_time[player_id] = time.time()
 
     def _promote_player(self, player, new_role: pb2.NodeRole):
-        msg = pb2.GameMessage(msg_seq=next(self.msg_seq_gen), receiver_id=player.id, sender_id=self._player_id)
+        msg_seq = next(self.msg_seq_gen)
+        msg = pb2.GameMessage(msg_seq=msg_seq, receiver_id=player.id, sender_id=self._player_id)
         role_change = pb2.GameMessage.RoleChangeMsg(sender_role=pb2.NodeRole.MASTER, receiver_role=new_role)
         msg.role_change.CopyFrom(role_change)
-        self._main_socket.send(msg.SerializeToString(), Address(player.ip_address, player.port))
-        self._main_socket.send(msg.SerializeToString(), Address(player.ip_address, player.port))
+        self._acks[msg_seq] = MsgToResend(msg.SerializeToString(), Address(player.ip_address, player.port))
+        self._main_socket.send(self._acks[msg_seq].msg, self._acks[msg_seq].addr)
 
     def score(self) -> dict[str, int]:
         return self._game_controller.score()
@@ -111,6 +113,7 @@ class MasterNode(Base):
             self._promote_player(potential_deputy, pb2.NodeRole.DEPUTY)
 
         self._players = updated_players
+        self._resend_not_granted()
 
     def _create_announcement(self):
         game_announcement = pb2.GameAnnouncement(players=pb2.GamePlayers(players=self._players),
@@ -126,7 +129,6 @@ class MasterNode(Base):
     def send_out_announcement(self):
         now = time.time()
         if now - self._last_announce_time >= 1:
-
             msg = self._create_announcement()
             self._main_socket.send(msg.SerializeToString(), self._multicast_addr)
             self._last_announce_time = now
@@ -134,6 +136,7 @@ class MasterNode(Base):
     def send_out_curr_game_state(self, snakes: dict[int: Snake], apples: list[Apple]):
         if (time.time() - self._last_state_time) * 1000 < self._STATE_DELAY_MS:
             return
+
         self.STATE_ORDER += 1
         foods = [pb2.GameState.Coord(x=apple.x_coord, y=apple.y_coord) for apple in apples]
         snakes_pb2 = []
@@ -177,11 +180,13 @@ class MasterNode(Base):
                 new_score[player.name] = player.score
         score.update(new_score)
         state_msg = pb2.GameMessage.StateMsg(state=
-            pb2.GameState(foods=foods, state_order=self.STATE_ORDER, players=pb2.GamePlayers(players=self._players),
-                          snakes=snakes_pb2))
+                                             pb2.GameState(foods=foods, state_order=self.STATE_ORDER,
+                                                           players=pb2.GamePlayers(players=self._players),
+                                                           snakes=snakes_pb2))
         msg.state.CopyFrom(state_msg)
 
         self.STATE_ORDER += 1
+        self._last_state_time = time.time()
         self._main_socket.send(msg.SerializeToString(), self._multicast_addr)
 
     def _handle_join_message(self, join_msg, msg_seq: int, addr: Address):
@@ -243,15 +248,15 @@ class MasterNode(Base):
         self._main_socket.send(response.SerializeToString(), addr)
 
     def _handle_ping_message(self, msg, addr):
-        # msg_seq = msg.msg_seq
+        msg_seq = msg.msg_seq
         sender_id = msg.sender_id
-        # res = pb2.GameMessage(msg_seq=msg_seq)
-        # ping = pb2.GameMessage.Ping()
-        # res.ping.CopyFrom(ping)
+        res = pb2.GameMessage(msg_seq=msg_seq)
+        ping = pb2.GameMessage.PingMsg()
+        res.ping.CopyFrom(ping)
 
         self._update_last_message_time(sender_id)
 
-        # self._main_socket.send(res.SerializeToString(), addr)
+        self._main_socket.send(res.SerializeToString(), addr)
 
     def _handle_discover_msg(self, addr):
         msg = self._create_announcement()
@@ -267,6 +272,8 @@ class MasterNode(Base):
                 self._handle_change_direction_request(msg, addr)
             case "ping":
                 self._handle_ping_message(msg, addr)
+            case "ack":
+                self._grant_ack(msg.msg_seq)
 
     def name_by_id(self, player_id) -> str:
         for player in self._players:
@@ -275,11 +282,9 @@ class MasterNode(Base):
         return ""
 
     def get_received_to_main_socket(self) -> tuple[pb2.GameMessage, Address] | None:
-
         res = self._main_socket.receive()
         if res is None:
             return None
-
         data, addr = res
 
         parsed = pb2.GameMessage()

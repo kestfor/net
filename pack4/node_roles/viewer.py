@@ -15,8 +15,6 @@ class ViewerNode(Base):
         super().__init__(addr, config, player_id, main_socket)
         self._game_state: pb2.GameState = None
         self._last_game_state_id = 0
-        self._last_recv_time = time.time()
-        self._last_send_time = time.time()
         self._master_addr = master_addr
         self._pb2_config = pb2_config
         self._deputy_addr: Address | None = None
@@ -81,12 +79,17 @@ class ViewerNode(Base):
                     self._game_state = msg.state.state
                     self._last_game_state_id = msg.state.state.state_order
                     self._update_deputy()
+                self._send_ack(msg.msg_seq, 0, 0, addr)
             case "role_change":
+
+                self._send_ack(msg.msg_seq, 0, 0, addr)
 
                 sender_role = msg.role_change.sender_role
 
                 if sender_role == pb2.NodeRole.MASTER:
                     self._master_addr = addr
+            case "ping":
+                return
             case _:
                 return
 
