@@ -90,7 +90,6 @@ class Base:
                 self._last_send_time = time.time()
 
     def get_received_to_multicast_addr(self) -> tuple[pb2.GameMessage, Address] | None:
-
         res = self._multicast_receiver.receive()
         if res is None:
             return None

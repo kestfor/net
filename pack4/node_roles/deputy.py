@@ -54,6 +54,7 @@ class DeputyNode(n.NormalNode):
     def check_master_status(self) -> None | m.MasterNode:
         now = time.time()
         if (now - self._last_recv_time) * 1000 > self._TIME_TO_DIE:
+            print(f"master didnt respond in {(now - self._last_recv_time)*1000} ms")
             return self._create_master()
 
     def _create_master(self) -> m.MasterNode:

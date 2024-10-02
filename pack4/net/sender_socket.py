@@ -1,6 +1,6 @@
 import socket
 from typing import Any
-
+import select
 
 from pack4.utils.Address import Address
 
@@ -12,8 +12,10 @@ class Socket:
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._socket.bind(("", 0))
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._timeout = timeout_sec
-        self._socket.settimeout(timeout_sec)
+        # self._timeout = timeout_sec
+        # self._socket.settimeout(timeout_sec)
+        self._socket.setblocking(False)
+
 
         try:
             address_info = socket.getaddrinfo(addr.ip, None)[0]
@@ -47,11 +49,10 @@ class Socket:
         self._socket.sendto(msg, (addr.ip, addr.port))
 
     def receive(self) -> tuple[Any, Address] | None:
-        try:
-            data, sender = self._socket.recvfrom(self._BUFF_SIZE)
+        rd_socks, wr_socks, _ = select.select([self._socket], [], [], 0)
+        for s in rd_socks:
+            data, sender = s.recvfrom(self._BUFF_SIZE)
             return data, Address(sender[0], sender[1])
-        except Exception:
-            return None
 
     def close(self):
         self._socket.close()
