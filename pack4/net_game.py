@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 from collections.abc import Iterable
 
 import pygame
@@ -25,6 +26,7 @@ class NetGame:
     SNAKE_COLOR = (0, 255, 0)
     BLACK_COLOR = (0, 0, 0)
     WHITE_COLOR = (255, 255, 255)
+    FRAME_RATE = 10
 
     def __init__(self, addr: Address, config: Settings):
         self._addr = addr
@@ -39,6 +41,8 @@ class NetGame:
             (config.width * config.cell_size + self._side_table.width, config.height * config.cell_size))
         self._interrupted = False
         self._exited = False
+        self._last_frame_time = 0
+        self._frame_time = 1 / self.FRAME_RATE
 
     def _create_new_game(self):
         self._node = MasterNode(self._addr, self._config, self._game_controller)
@@ -161,6 +165,7 @@ class NetGame:
                 sys.exit()
 
     def _draw_objects(self, snakes: Iterable[Snake], apples: Iterable[Apple]):
+        self._side_table.draw(self._screen, self._node.score())
         for snake in snakes:
             for coord in snake.coords:
                 pygame.draw.rect(self._screen,
@@ -172,68 +177,59 @@ class NetGame:
                              self.APPLE_COLOR,
                              pygame.Rect(apple.coords[0], apple.coords[1], self._cell_size, self._cell_size))
 
-        self._side_table.draw(self._screen, self._node.score())
-
     def _master_game(self):
-
         if len(self._game_controller.snakes) == 0:
             self._game_controller.add_snake(self._node.player_id, self._config.user_name)
 
-        while not self._interrupted:
+        while len(self._game_controller.apples) < self._config.food_static + len(self._game_controller.snakes):
+            try:
+                self._game_controller.add_apple()
+            except Exception:
+                return
 
-            while len(self._game_controller.apples) < self._config.food_static + len(self._game_controller.snakes):
-                try:
-                    self._game_controller.add_apple()
-                except Exception:
-                    break
+        self._screen.fill(self.BLACK_COLOR)
 
-            self._screen.fill(self.BLACK_COLOR)
+        self._draw_objects(self._game_controller.snakes.values(), self._game_controller.apples)
 
-            self._draw_objects(self._game_controller.snakes.values(), self._game_controller.apples)
+        self._keyboard_interaction_master()
 
-            self._keyboard_interaction_master()
+        self._game_controller.move_snakes()
+        res = self._game_controller.check_apples()
+        for id in res:
+            self._game_controller.add_points(1, id)
 
-            self._game_controller.move_snakes()
-            res = self._game_controller.check_apples()
-            for id in res:
-                self._game_controller.add_points(1, id)
+        collided_ids = self._game_controller.check_collisions()
 
-            collided_ids = self._game_controller.check_collisions()
+        for id in collided_ids:
+            if collided_ids[id] is not None:
+                self._game_controller.add_points(1, collided_ids[id])
+            self._game_controller.remove_snake(id)
+            self._node.change_player_role(id, pb2.NodeRole.VIEWER)
 
-            for id in collided_ids:
-                if collided_ids[id] is not None:
-                    self._game_controller.add_points(1, collided_ids[id])
-                self._game_controller.remove_snake(id)
-                self._node.change_player_role(id, pb2.NodeRole.VIEWER)
+        if len(self._game_controller.snakes) == 0:
+            self._node.send_out_curr_game_state(self._game_controller.snakes, self._game_controller.apples)
+            self._exited = True
 
-            if len(self._game_controller.snakes) == 0:
-                self._node.send_out_curr_game_state(self._game_controller.snakes, self._game_controller.apples)
-                self._exited = True
-
-            pygame.display.update()
-            pygame.time.Clock().tick(10)
+        pygame.display.update()
+        #pygame.time.wait(100)
 
     def _viewer_game(self):
-        while not self._interrupted:
-            self._screen.fill(self.BLACK_COLOR)
-            snakes, apples = self._node.get_curr_game_objects()
-            self._draw_objects(snakes, apples)
+        self._screen.fill(self.BLACK_COLOR)
+        snakes, apples = self._node.get_curr_game_objects()
+        self._draw_objects(snakes, apples)
 
-            self._keyboard_interaction_viewer()
+        self._keyboard_interaction_viewer()
 
-            pygame.display.update()
-            pygame.time.Clock().tick(60)
+        pygame.display.update()
 
     def _normal_game(self):
-        while not self._interrupted:
-            self._screen.fill(self.BLACK_COLOR)
-            snakes, apples = self._node.get_curr_game_objects()
-            self._draw_objects(snakes, apples)
+        self._screen.fill(self.BLACK_COLOR)
+        snakes, apples = self._node.get_curr_game_objects()
+        self._draw_objects(snakes, apples)
 
-            self._keyboard_interaction_normal()
+        self._keyboard_interaction_normal()
 
-            pygame.display.update()
-            pygame.time.Clock().tick(60)
+        pygame.display.update()
 
     def _empty_game(self):
         button_width = 200
@@ -261,26 +257,25 @@ class NetGame:
                                   self._config.height * self._config.cell_size - step - button_height, button_width,
                                   button_height, self.APPLE_COLOR, create_game_wrapper))
 
-        while not self._interrupted:
+        if len(buttons) < 10:
+            for addr, announce in list(self._node.announcements.items())[len(buttons) - 1:10]:
+                name = announce.announcement.games[0].game_name
+                buttons.append(
+                    GameButton(name + '(игрок)', curr_start_x, curr_start_y, button_width, button_height,
+                               self.SNAKE_COLOR,
+                               join_game_wrapper, pb2.NodeRole.NORMAL, addr))
+                buttons.append(
+                    GameButton(name + '(зритель)', curr_start_x + step + button_width, curr_start_y, button_width,
+                               button_height, self.WHITE_COLOR,
+                               join_game_wrapper, pb2.NodeRole.VIEWER, addr))
+                curr_start_y += step + button_height
 
-            if len(buttons) < 10:
-                for addr, announce in list(self._node.announcements.items())[len(buttons) - 1:10]:
-                    name = announce.announcement.games[0].game_name
-                    buttons.append(
-                        GameButton(name + '(игрок)', curr_start_x, curr_start_y, button_width, button_height,
-                                   self.SNAKE_COLOR,
-                                   join_game_wrapper, pb2.NodeRole.NORMAL, addr))
-                    buttons.append(
-                        GameButton(name + '(зритель)', curr_start_x + step + button_width, curr_start_y, button_width,
-                                   button_height, self.WHITE_COLOR,
-                                   join_game_wrapper, pb2.NodeRole.VIEWER, addr))
-                    curr_start_y += step + button_height
+        self._screen.fill(self.BLACK_COLOR)
 
-            self._screen.fill(self.BLACK_COLOR)
+        for button in buttons:
+            button.draw(self._screen)
 
-            for button in buttons:
-                button.draw(self._screen)
-
+        try:
             for ev in pygame.event.get():
 
                 if ev.type == pygame.QUIT:
@@ -294,50 +289,61 @@ class NetGame:
                             button.run_func()
                             pygame.display.update()
                             break
+        except Exception:
+            pass
 
-            pygame.display.update()
-            pygame.time.Clock().tick(60)
+        pygame.display.update()
 
     def run_game(self):
-        while True:
-            print(f'curr role {type(self._node)}')
-            self._interrupted = False
-            match self._node:
-                case NormalNode() | DeputyNode():
-                    self._normal_game()
-                case MasterNode():
-                    self._master_game()
-                case ViewerNode():
-                    self._viewer_game()
-                case EmptyNode():
-                    self._empty_game()
+            #print(f'curr role {type(self._node)}')
+        self._interrupted = False
+        match self._node:
+            case NormalNode() | DeputyNode():
+                self._normal_game()
+            case MasterNode():
+                self._master_game()
+            case ViewerNode():
+                self._viewer_game()
+            case EmptyNode():
+                self._empty_game()
 
-            if not isinstance(self._node, MasterNode):
-                width, height = self._node.get_width_height()
-            else:
-                width, height = self._config.width, self._config.height
-                self._game_controller = self._node._game_controller
+        if isinstance(self._node, EmptyNode):
+            return
+
+        if not isinstance(self._node, MasterNode):
+            width, height = self._node.get_width_height()
+        else:
+            width, height = self._config.width, self._config.height
+            self._game_controller = self._node._game_controller
+        if self._interrupted:
             self._resize_screen(width, height)
 
     def run(self):
-        threading.Thread(target=self.run_node).start()
-        self.run_game()
+        while not self._exited:
+            self.run_node()
+            if self._exited:
+                exit()
+            now = time.time()
+            if (now - self._last_frame_time) < self._frame_time:
+                continue
+            else:
+                self.run_game()
+                self._last_frame_time = now
 
     def run_node(self):
-        while not self._exited:
-            match self._node:
-                case EmptyNode():
-                    self._run_empty()
-                case NormalNode():
-                    self._run_normal_or_deputy()
-                case ViewerNode():
-                    self._run_viewer()
-                case DeputyNode():
-                    self._run_normal_or_deputy()
-                case MasterNode():
-                    self._run_master()
-                case _:
-                    pass
+        match self._node:
+            case EmptyNode():
+                self._run_empty()
+            case NormalNode():
+                self._run_normal_or_deputy()
+            case ViewerNode():
+                self._run_viewer()
+            case DeputyNode():
+                self._run_normal_or_deputy()
+            case MasterNode():
+                self._run_master()
+            case _:
+                pass
 
 
 multicast_addr = "224.0.0.1"
@@ -345,6 +351,6 @@ port = 9192
 addr = Address(multicast_addr, port)
 
 if __name__ == '__main__':
-    config = GameConfig(50, 50, 1, 50, "gamt", "1", 10)
+    config = GameConfig(50, 50, 1, 50, "gamt", "2", 10)
     game = NetGame(addr, config)
     game.run()

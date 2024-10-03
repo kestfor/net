@@ -1,4 +1,5 @@
 import socket
+from csv import excel
 from typing import Any
 import select
 
@@ -50,9 +51,12 @@ class Socket:
 
     def receive(self) -> tuple[Any, Address] | None:
         rd_socks, wr_socks, _ = select.select([self._socket], [], [], 0)
-        for s in rd_socks:
-            data, sender = s.recvfrom(self._BUFF_SIZE)
-            return data, Address(sender[0], sender[1])
+        try:
+            for s in rd_socks:
+                data, sender = s.recvfrom(self._BUFF_SIZE)
+                return data, Address(sender[0], sender[1])
+        except Exception as e:
+            return None
 
     def close(self):
         self._socket.close()

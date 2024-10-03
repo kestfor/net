@@ -37,11 +37,13 @@ class MulticastReceiverSocket:
         self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, self.LOOPBACK)
 
     def receive(self) -> tuple[Any, Address] | None:
-
         rd_socks, wr_socks, _ = select.select([self._socket], [], [], 0)
-        for s in rd_socks:
-            data, sender = s.recvfrom(self._BUFF_SIZE)
-            return data, Address(sender[0], sender[1])
+        try:
+            for s in rd_socks:
+                data, sender = s.recvfrom(self._BUFF_SIZE)
+                return data, Address(sender[0], sender[1])
+        except Exception as e:
+            return None
         # try:
         #
         #     data, sender = self._socket.recvfrom(self._BUFF_SIZE)
