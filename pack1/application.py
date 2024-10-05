@@ -72,6 +72,7 @@ class Application:
                         self._ids[data.Uuid] = {"time": now, "address": address}
                         print(f'{address} joined group at {now}')
                         print(f'alive ips: {self._get_alive_ips()}')
+                        print(f'amount {len(self._ids) + 1}')
 
                     else:
                         self._ids[data.Uuid]["time"] = now
