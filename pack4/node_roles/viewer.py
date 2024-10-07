@@ -73,6 +73,7 @@ class ViewerNode(Base):
         return width, height
 
     def handle_message(self, msg: pb2.GameMessage, addr: Address) -> Any:
+        super().handle_message(msg, addr)
         match msg.WhichOneof("Type"):
             case "state":
                 if self._last_game_state_id < msg.state.state.state_order:
@@ -88,8 +89,6 @@ class ViewerNode(Base):
 
                 if sender_role == pb2.NodeRole.MASTER:
                     self._master_addr = addr
-            case "ping":
-                return
             case _:
                 return
 

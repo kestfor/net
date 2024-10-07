@@ -65,6 +65,8 @@ class Base:
                 self._announcements[addr] = msg
             case "ack":
                 self._grant_ack(msg.msg_seq)
+            case "ping":
+                self._last_recv_time = time.time()
             case _:
                 return
 

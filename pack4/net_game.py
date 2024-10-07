@@ -83,6 +83,7 @@ class NetGame:
         except ConnectionError as e:
             print(e)
             exit(1)
+
         self._node.ping_master_if_needed()
 
     def _run_master(self):

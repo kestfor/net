@@ -63,9 +63,6 @@ class NormalNode(v.ViewerNode):
                 if receiver_role == pb2.NodeRole.VIEWER:
                     return v.ViewerNode(self._addr, self._non_parsed_config, self._player_id, self._master_addr,
                                         self._main_socket, self._pb2_config)
-            case 'ack':
-                msg_seq = msg.msg_seq
-                self._grant_ack(msg_seq)
             case 'error':
                 raise ConnectionError(msg.error.error_message)
             case _:
