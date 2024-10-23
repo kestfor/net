@@ -352,6 +352,6 @@ port = 9192
 addr = Address(multicast_addr, port)
 
 if __name__ == '__main__':
-    config = GameConfig(50, 50, 1, 50, "my_game", "kent", 10)
+    config = GameConfig(50, 50, 1, 100, "my_game", "kent", 10)
     game = NetGame(addr, config)
     game.run()

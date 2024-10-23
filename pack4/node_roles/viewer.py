@@ -47,7 +47,7 @@ class ViewerNode(Base):
         for snake in snakes_pb2:
             snakes.append(Snake(0, 0, height, width,
                                 self._non_parsed_config.cell_size,
-                                [(coord.x, coord.y) for coord in snake.points],
+                                Snake.from_relative_coords([(coord.x, coord.y) for coord in snake.points]),
                                 snake.head_direction))
 
         for apple in apples_pb2:

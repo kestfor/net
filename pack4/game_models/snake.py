@@ -25,6 +25,21 @@ class Snake:
     def coords(self):
         return self._coords.copy()
 
+    def to_relative_coords(self) -> list[tuple[int, int]]:
+        head = self._coords[0]
+        res = [head]
+        for (x, y) in self._coords[1:]:
+            res.append((x-head[0], y-head[1]))
+        return res
+
+    @staticmethod
+    def from_relative_coords(coords: list[tuple[int, int]]) -> list[tuple[int, int]]:
+        head = coords[0]
+        res = [head]
+        for (x, y) in coords[1:]:
+            res.append((x+head[0], y+head[1]))
+        return res
+
     def add_tail(self, tail: tuple[int, int]):
         self._coords.append(tail)
 
@@ -59,6 +74,7 @@ class Snake:
             else:
                 return False
         return False
+
 
     def crash_into_cell(self, other) -> tuple[int, int] | None:
         if isinstance(other, Snake):

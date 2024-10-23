@@ -160,7 +160,7 @@ class MasterNode(Base):
 
             snakes_pb2.append(pb2.GameState.Snake(player_id=player_id,
                                                   points=[pb2.GameState.Coord(x=coord[0], y=coord[1]) for coord in
-                                                          snake.coords],
+                                                          snake.to_relative_coords()],
                                                   state=state,
                                                   head_direction=head_direction
                                                   ))
