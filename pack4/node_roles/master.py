@@ -60,6 +60,7 @@ class MasterNode(Base):
         role_change = pb2.GameMessage.RoleChangeMsg(sender_role=pb2.NodeRole.MASTER, receiver_role=new_role)
         msg.role_change.CopyFrom(role_change)
         self._acks[msg_seq] = MsgToResend(msg.SerializeToString(), Address(player.ip_address, player.port))
+        print(f"send promote to {player}")
         self._main_socket.send(self._acks[msg_seq].msg, self._acks[msg_seq].addr)
 
     def score(self) -> dict[str, int]:
@@ -103,12 +104,14 @@ class MasterNode(Base):
                 if player.role == pb2.NodeRole.DEPUTY:
                     actual_deputy = player
 
-                if potential_deputy is None:
+                if potential_deputy is None and player.role != pb2.NodeRole.VIEWER:
                     potential_deputy = player
 
                 updated_players.append(player)
 
+
         if actual_deputy is None and potential_deputy is not None:
+            print(self._players)
             potential_deputy.role = pb2.NodeRole.DEPUTY
             self._promote_player(potential_deputy, pb2.NodeRole.DEPUTY)
 
@@ -138,7 +141,7 @@ class MasterNode(Base):
             return
 
         self.STATE_ORDER += 1
-        foods = [pb2.GameState.Coord(x=apple.x_coord, y=apple.y_coord) for apple in apples]
+        foods = [pb2.GameState.Coord(x=apple.x_coord // self._non_parsed_config.cell_size, y=apple.y_coord // self._non_parsed_config.cell_size) for apple in apples]
         snakes_pb2 = []
 
         for player_id, snake in snakes.items():
@@ -165,7 +168,7 @@ class MasterNode(Base):
                                                   head_direction=head_direction
                                                   ))
 
-        msg = pb2.GameMessage(msg_seq=next(self.msg_seq_gen))
+        msg = pb2.GameMessage(msg_seq=next(self.msg_seq_gen), sender_id=self._player_id)
         for player in self._players:
             if player.name in self.score():
                 player.score = self.score()[player.name]
@@ -184,10 +187,13 @@ class MasterNode(Base):
                                                            players=pb2.GamePlayers(players=self._players),
                                                            snakes=snakes_pb2))
         msg.state.CopyFrom(state_msg)
-
         self.STATE_ORDER += 1
         self._last_state_time = time.time()
-        self._main_socket.send(msg.SerializeToString(), self._multicast_addr)
+        for item in self._players:
+            if item.id != self._player_id:
+                ip_address = item.ip_address
+                port = item.port
+                self._main_socket.send(msg.SerializeToString(), Address(ip_address, port))
 
     def _handle_join_message(self, join_msg, msg_seq: int, addr: Address):
         role = join_msg.requested_role
@@ -224,6 +230,7 @@ class MasterNode(Base):
                 msg.error.CopyFrom(error)
 
         self._main_socket.send(msg.SerializeToString(), addr)
+        print(f"sent: {msg}")
 
     def _handle_change_direction_request(self, game_msg, addr: Address):
         new_direction = game_msg.steer.direction
@@ -265,14 +272,19 @@ class MasterNode(Base):
     def handle_message(self, msg: pb2.GameMessage, addr: Address) -> Any:
         match msg.WhichOneof('Type'):
             case "discover":
+                print("got discover")
                 self._handle_discover_msg(addr)
             case "join":
+                print("got join")
                 self._handle_join_message(msg.join, msg.msg_seq, addr)
             case "steer":
+                print("got steer")
                 self._handle_change_direction_request(msg, addr)
             case "ping":
+                print("got ping")
                 self._handle_ping_message(msg, addr)
             case "ack":
+                print("got ack")
                 self._grant_ack(msg.msg_seq)
 
     def name_by_id(self, player_id) -> str:

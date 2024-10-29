@@ -46,7 +46,7 @@ class DeputyNode(n.NormalNode):
             field.set_multiple(snakes[snake.player_id].coords)
 
         for apple in apples_pb2:
-            apples.append(Apple((apple.x, apple.y)))
+            apples.append(Apple((apple.x * self._non_parsed_config.cell_size, apple.y * self._non_parsed_config.cell_size)))
             field.set_cell(apple.y, apple.x)
 
         return GameController(field, snakes, apples, score, names)

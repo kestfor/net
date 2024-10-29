@@ -1,7 +1,6 @@
 class Apple:
 
     def __init__(self, coords: tuple[int, int]):
-
         self._coords = coords
 
     @property

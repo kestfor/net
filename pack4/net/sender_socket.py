@@ -47,7 +47,13 @@ class Socket:
         return self._socket.getsockname()[0]
 
     def send(self, msg, addr: Address):
-        self._socket.sendto(msg, (addr.ip, addr.port))
+        rd_socks, wr_socks, _ = select.select([], [self._socket], [], 0)
+        try:
+            for s in wr_socks:
+                s.sendto(msg, (addr.ip, addr.port))
+        except Exception as e:
+            print(e)
+            return None
 
     def receive(self) -> tuple[Any, Address] | None:
         rd_socks, wr_socks, _ = select.select([self._socket], [], [], 0)
@@ -56,6 +62,7 @@ class Socket:
                 data, sender = s.recvfrom(self._BUFF_SIZE)
                 return data, Address(sender[0], sender[1])
         except Exception as e:
+            print(e)
             return None
 
     def close(self):

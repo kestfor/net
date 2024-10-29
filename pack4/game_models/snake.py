@@ -27,18 +27,33 @@ class Snake:
 
     def to_relative_coords(self) -> list[tuple[int, int]]:
         head = self._coords[0]
-        res = [head]
+        head_x, head_y = head
+        head_x = head_x // self._cell_size
+        head_y = head_y // self._cell_size
+        res = [(head_x, head_y)]
+        prev_x = head_x
+        prev_y = head_y
         for (x, y) in self._coords[1:]:
-            res.append((x-head[0], y-head[1]))
+            x = x // self._cell_size
+            y = y // self._cell_size
+
+            dx, dy = x - prev_x, y - prev_y
+            res.append((dx, dy))
+            prev_x, prev_y = x, y
+
         return res
 
     @staticmethod
-    def from_relative_coords(coords: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    def from_relative_coords(coords: list[tuple[int, int]], cell_size: int) -> list[tuple[int, int]]:
         head = coords[0]
-        res = [head]
-        for (x, y) in coords[1:]:
-            res.append((x+head[0], y+head[1]))
-        return res
+        head_x, head_y = head
+        res = [(head_x, head_y)]
+        prev_x, prev_y = head_x, head_y
+        for (dx, dy) in coords[1:]:
+            prev_x, prev_y = dx + prev_x, dy + prev_y
+            res.append((prev_x, prev_y))
+        formated = [(x * cell_size, y * cell_size) for (x, y) in res]
+        return formated
 
     def add_tail(self, tail: tuple[int, int]):
         self._coords.append(tail)
@@ -74,7 +89,6 @@ class Snake:
             else:
                 return False
         return False
-
 
     def crash_into_cell(self, other) -> tuple[int, int] | None:
         if isinstance(other, Snake):

@@ -2,10 +2,10 @@ import time
 from typing import Any, Iterable
 
 import pack4.snakes_pb2 as pb2
-from pack4.utils.Address import Address
 from pack4.game_models.apple import Apple
 from pack4.game_models.snake import Snake
 from pack4.node_roles.base import Base
+from pack4.utils.Address import Address
 
 
 class ViewerNode(Base):
@@ -47,11 +47,12 @@ class ViewerNode(Base):
         for snake in snakes_pb2:
             snakes.append(Snake(0, 0, height, width,
                                 self._non_parsed_config.cell_size,
-                                Snake.from_relative_coords([(coord.x, coord.y) for coord in snake.points]),
+                                Snake.from_relative_coords([(coord.x, coord.y) for coord in snake.points],
+                                                           self._non_parsed_config.cell_size),
                                 snake.head_direction))
 
         for apple in apples_pb2:
-            apples.append(Apple((apple.x, apple.y)))
+            apples.append(Apple((apple.x * self._non_parsed_config.cell_size, apple.y * self._non_parsed_config.cell_size)))
         return snakes, apples
 
     def _update_score(self):
